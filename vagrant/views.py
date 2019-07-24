@@ -1,67 +1,44 @@
-from findARestaurant import findARestaurant
-from models import Base, Restaurant
-from flask import Flask, jsonify, request
+from models import Base, User, Bagel
+from flask import Flask, jsonify, request, url_for, abort, g
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
+from flask.ext.httpauth import HTTPBasicAuth
 
-import sys
-import codecs
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-sys.stderr = codecs.getwriter('utf8')(sys.stderr)
+auth = HTTPBasicAuth() 
 
 
-engine = create_engine('sqlite:///restaurants.db',connect_args={'check_same_thread': False})
+engine = create_engine('sqlite:///bagelShop.db')
 
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 app = Flask(__name__)
 
+#ADD @auth.verify_password here
 
-@app.route('/restaurants', methods = ['GET', 'POST'])
-def all_restaurants_handler():
-  if request.method == 'GET':
-    res = session.query(Restaurant).all()
-    return jsonify(restaurants = [r.serialize for r in res])
+#ADD a /users route here
 
-  elif request.method == 'POST':
-    meal = request.args.get('mealType', '')
-    loc = request.args.get('location', '')
-    resInfo = findARestaurant(meal, loc)
-    if resInfo != 'none':
-      res = Restaurant(restaurant_name = unicode(resInfo['name']),
-      restaurant_address = unicode(resInfo['address']),
-      restaurant_image = resInfo['image'])
-      session.add(res)
-      session.commit()
-      return jsonify(restaurant = res.serialize)
 
-@app.route('/restaurants/<int:id>', methods = ['GET','PUT', 'DELETE'])
-def restaurant_handler(id):
-  res = session.query(Restaurant).filter_by(id = id).first()
-  if request.method == 'GET':
-    return jsonify(restaurant = res.serialize)
-  elif request.method == 'PUT':
-    name = request.args.get('name')
-    addr = request.args.get("address")
-    img = request.args.get ('image')
-    if name:
-      res.restaurant_name = name
-    if addr:
-      res.restaurant_address = addr
-    if img:
-      res.restaurant_image = img
-    return jsonify(restaurant = res.serialize)
-  elif request.method == 'DELETE':
-      session.delete(res)
-      session.commit()
-      return "deleted"
+
+@app.route('/bagels', methods = ['GET','POST'])
+#protect this route with a required login
+def showAllBagels():
+    if request.method == 'GET':
+        bagels = session.query(Bagel).all()
+        return jsonify(bagels = [bagel.serialize for bagel in bagels])
+    elif request.method == 'POST':
+        name = request.json.get('name')
+        description = request.json.get('description')
+        picture = request.json.get('picture')
+        price = request.json.get('price')
+        newBagel = Bagel(name = name, description = description, picture = picture, price = price)
+        session.add(newBagel)
+        session.commit()
+        return jsonify(newBagel.serialize)
+
 
 
 if __name__ == '__main__':
     app.debug = True
     app.run(host='0.0.0.0', port=5000)
-
-
-  
