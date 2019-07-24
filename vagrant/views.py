@@ -11,20 +11,13 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
-
-
-#foursquare_client_id = ''
-
-#foursquare_client_secret = ''
-
-#google_api_key = ''
-
 engine = create_engine('sqlite:///restaurants.db')
 
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 app = Flask(__name__)
+
 
 @app.route('/restaurants', methods = ['GET', 'POST'])
 def all_restaurants_handler():
@@ -46,11 +39,24 @@ def all_restaurants_handler():
 
 @app.route('/restaurants/<int:id>', methods = ['GET','PUT', 'DELETE'])
 def restaurant_handler(id):
+  res = session.query(Restaurant).filter_by(id = id).first()
   if request.method == 'GET':
-
+    return jsonify(restaurant = res.serialize)
   elif request.method == 'PUT':
-
+    name = request.args.get('name')
+    addr = request.args.get("address")
+    img = request.args.get ('image')
+    if name:
+      res.restaurant_name = name
+    if addr:
+      res.restaurant_address = addr
+    if img:
+      res.restaurant_image = img
+    return jsonify(restaurant = res.serialize)
   elif request.method == 'DELETE':
+      session.delete(res)
+      session.commit()
+      return "deleted"
 
 
 if __name__ == '__main__':
