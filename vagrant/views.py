@@ -11,7 +11,7 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
-engine = create_engine('sqlite:///restaurants.db')
+engine = create_engine('sqlite:///restaurants.db',connect_args={'check_same_thread': False})
 
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
@@ -23,16 +23,16 @@ app = Flask(__name__)
 def all_restaurants_handler():
   if request.method == 'GET':
     res = session.query(Restaurant).all()
-    return jsonify(r.serialize for r in res)
+    return jsonify(restaurants = [r.serialize for r in res])
 
   elif request.method == 'POST':
     meal = request.args.get('mealType', '')
     loc = request.args.get('location', '')
     resInfo = findARestaurant(meal, loc)
     if resInfo != 'none':
-      res = Restaurant(restaurant_name = unicode(restaurant_info['name']),
-      restaurant_address = unicode(restaurant_info['address']),
-      restaurant_image = restaurant_info['image'])
+      res = Restaurant(restaurant_name = unicode(resInfo['name']),
+      restaurant_address = unicode(resInfo['address']),
+      restaurant_image = resInfo['image'])
       session.add(res)
       session.commit()
       return jsonify(restaurant = res.serialize)
