@@ -46,9 +46,9 @@ def findARestaurant(mealType,location):
 
 			#7. Return a dictionary containing the restaurant name, address, and image url	
 		resInfo = {'name':name, 'address':resAddress, 'pic':picURL}
-		print "Restaurant Name: %s" % resInfo['name']
-		print "Restaurant Address: %s" % resInfo['address']
-		print "Image: %s \n" % resInfo['pic']
+		#print "Restaurant Name: %s" % resInfo['name']
+		#print "Restaurant Address: %s" % resInfo['address']
+		#print "Image: %s \n" % resInfo['pic']
 		return resInfo
 	else:
 		print "Nothing found for %s" % location
