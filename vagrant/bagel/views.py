@@ -49,8 +49,8 @@ def get_auth_token():
 #ADD a /users route here
 @app.route('/users', methods = ['POST'])
 def addUser():
-    username = request.args.get('username')
-    password = request.args.get('password')
+    username = request.json.get('username')
+    password = request.json.get('password')
     
     if username != None and password != None:
         if session.query(User).filter_by(username = username).first() != None:
