@@ -3,12 +3,12 @@ from flask import Flask, jsonify, request, url_for, abort, g
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 
 auth = HTTPBasicAuth() 
 
 
-engine = create_engine('sqlite:///bagelShop.db')
+engine = create_engine('sqlite:///bagelShop.db', connect_args={'check_same_thread': False})
 
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
@@ -16,13 +16,35 @@ session = DBSession()
 app = Flask(__name__)
 
 #ADD @auth.verify_password here
+@auth.verify_password
+def verify_password(username, password):
+    user = session.query(User).filter_by(username = username).first()
+    if not user:
+        return False
+    elif not user.verify_password(password):
+        return False
+    else:
+        g.user = user
+        return True
 
 #ADD a /users route here
-
-
+@app.route('/users', methods = ['POST'])
+def addUser():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    
+    if username != None and password != None:
+        if session.query(User).filter_by(username = username).first() != None:
+            user = session.query(User).filter_by(username = username).first()
+            return jsonify({'error':'This user is already in our system'})
+    user = User(username = username)
+    user.hash_password(password)
+    session.add(user)
+    session.commit()
+    return jsonify({'username': user.username}), 201
 
 @app.route('/bagels', methods = ['GET','POST'])
-#protect this route with a required login
+@auth.login_required
 def showAllBagels():
     if request.method == 'GET':
         bagels = session.query(Bagel).all()
