@@ -27,11 +27,30 @@ def verify_password(username, password):
         g.user = user
         return True
 
+@auth.verify_password
+def verify_password(userOrToken, password):
+    user_id = User.verify_auth_token(userOrToken)
+    if user_id:
+        user = session.query(User).filter_by(id = user_id).first()
+    else:
+        user = session.query(User).filter_by(username = userOrToken).first()
+        if not user or not user.verify_password(password):
+            return False
+    g.user = user
+    return True
+    
+
+@app.route('/token')
+@auth.login_required
+def get_auth_token():
+    token = g.user.gen_auth_token()
+    return jsonify({'token': token.decode('ascii')})
+
 #ADD a /users route here
 @app.route('/users', methods = ['POST'])
 def addUser():
-    username = request.json.get('username')
-    password = request.json.get('password')
+    username = request.args.get('username')
+    password = request.args.get('password')
     
     if username != None and password != None:
         if session.query(User).filter_by(username = username).first() != None:
@@ -58,6 +77,11 @@ def showAllBagels():
         session.add(newBagel)
         session.commit()
         return jsonify(newBagel.serialize)
+
+@app.route('/api/resource')
+@auth.login_required
+def get_resource():
+    return jsonify({ 'data': 'Hello, %s!' % g.user.username })
 
 
 

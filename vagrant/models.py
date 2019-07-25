@@ -3,8 +3,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from passlib.apps import custom_app_context as pwd_context
-Base = declarative_base()
+import random, string
+from itsdangerous import(TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 
+Base = declarative_base()
+secretKey = "".join(random.choice(string.ascii_uppercase + string.digits)
+	for x in xrange(32))
 #ADD YOUR USER MODEL HERE
 class User(Base):
 	__tablename__ = 'user'
@@ -18,6 +22,21 @@ class User(Base):
 	def verify_password(self, password):
 		return pwd_context.verify(password, self.passHash)
 
+	def gen_auth_token(self, expiration = 3600):
+		s = Serializer(secretKey, expires_in = expiration)
+		return s.dumps({'id': self.id})
+
+	@staticmethod
+	def verify_auth_token(token):
+		s = Serializer(secretKey)
+		try:
+			d = s.loads(token)
+		except SignatureExpired:
+			return None
+		except BadSignature:
+			return None
+		user_id = data['id']
+		return user_id
 
 class Bagel(Base):
 	__tablename__ = 'bagel'
