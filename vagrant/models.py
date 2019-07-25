@@ -7,56 +7,41 @@ import random, string
 from itsdangerous import(TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 
 Base = declarative_base()
-secretKey = "".join(random.choice(string.ascii_uppercase + string.digits)
-	for x in xrange(32))
-#ADD YOUR USER MODEL HERE
+
+#You will use this secret key to create and verify your tokens
+secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
+
 class User(Base):
-	__tablename__ = 'user'
-	id = Column(Integer, primary_key=True)
-	username = Column(String(32), index=True)
-	passHash = Column(String(64))
+    __tablename__ = 'user'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(32), index=True)
+    password_hash = Column(String(64))
 
-	def hash_password(self, password):
-		self.passHash = pwd_context.encrypt(password)
-	
-	def verify_password(self, password):
-		return pwd_context.verify(password, self.passHash)
+    def hash_password(self, password):
+        self.password_hash = pwd_context.encrypt(password)
 
-	def gen_auth_token(self, expiration = 3600):
-		s = Serializer(secretKey, expires_in = expiration)
-		return s.dumps({'id': self.id})
+    def verify_password(self, password):
+        return pwd_context.verify(password, self.password_hash)
+    #Add a method to generate auth tokens here
+    
+    #Add a method to verify auth tokens here
 
-	@staticmethod
-	def verify_auth_token(token):
-		s = Serializer(secretKey)
-		try:
-			d = s.loads(token)
-		except SignatureExpired:
-			return None
-		except BadSignature:
-			return None
-		user_id = data['id']
-		return user_id
+class Product(Base):
+    __tablename__ = 'product'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    category = Column(String)
+    price = Column(String)
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {
+        'name' : self.name,
+        'category' : self.category,
+        'price' : self.price
+            }
 
-class Bagel(Base):
-	__tablename__ = 'bagel'
-	id = Column(Integer, primary_key=True)
-	name = Column(String)
-	picture = Column(String)
-	description = Column(String)
-	price = Column(String)
-	@property
-	def serialize(self):
-	    """Return object data in easily serializeable format"""
-	    return {
-	    'name' : self.name,
-	    'picture' : self.picture,
-	    'description' : self.description,
-	    'price' : self.price
-	        }
-
-
-engine = create_engine('sqlite:///bagelShop.db')
+engine = create_engine('sqlite:///regalTree.db')
  
 
 Base.metadata.create_all(engine)
