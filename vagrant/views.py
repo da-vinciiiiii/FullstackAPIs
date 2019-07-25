@@ -3,12 +3,12 @@ from flask import Flask, jsonify, request, url_for, abort, g
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
+from flask_httpauth import HTTPBasicAuth
 
-from flask.ext.httpauth import HTTPBasicAuth
 auth = HTTPBasicAuth()
 
 
-engine = create_engine('sqlite:///regalTree.db')
+engine = create_engine('sqlite:///regalTree.db', connect_args={'check_same_thread': False})
 
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
@@ -19,17 +19,31 @@ app = Flask(__name__)
 
 
 #ADD @auth.verify_password decorator here
+@auth.verify_password
+def verify_password(userOrToken, password):
+    userID = User.verifyAuthToken(userOrToken)
+    if userID: #token
+        user = session.query(User).filter_by(id = userID).first()
+    else:
+        user = session.query(User).filter_by(username = userOrToken).first()
+        if not user or not user.verify_password(password):
+            return False
+    g.user = user
+    return True
 
 
 #add /token route here to get a token for a user with login credentials
-
-
+@app.route('/token')
+@auth.login_required
+def get_auth_token():
+    token = g.user.genAuthToken()
+    return jsonify({'token': token.decode('ascii')})
 
 
 @app.route('/users', methods = ['POST'])
 def new_user():
-    username = request.args.get('username')
-    password = request.args.get('password')
+    username = request.json.get('username')
+    password = request.json.get('password')
     if username is None or password is None:
         print "missing arguments"
         abort(400) 
